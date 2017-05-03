@@ -12,22 +12,24 @@ import it.polito.tdp.borders.model.Country;
 
 public class BordersDAO {
 
-	public List<Country> loadAllCountries() {
+	public List<Country> loadAllCountries(int anno) {
 
-		String sql = "SELECT ccode,StateAbb,StateNme " + "FROM country " + "ORDER BY StateAbb ";
+		String sql = "SELECT ccode,StateAbb,StateNme " + "FROM country, contiguity " + "WHERE country.StateAbb = contiguity.state1ab AND year = ?";
 
 		try {
+			List<Country> countries = new ArrayList<Country>() ;
 			Connection conn = DBConnect.getInstance().getConnection();
 			PreparedStatement st = conn.prepareStatement(sql);
 
+			st.setInt(1, anno);
 			ResultSet rs = st.executeQuery();
 
 			while (rs.next()) {
-				System.out.format("%d %s %s\n", rs.getInt("ccode"), rs.getString("StateAbb"), rs.getString("StateNme"));
+				countries.add(new Country(rs.getInt("ccode"), rs.getString("StateABB"), rs.getString("StateNme")));
 			}
 
 			conn.close();
-			return new ArrayList<Country>();
+			return countries;
 
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -37,8 +39,37 @@ public class BordersDAO {
 	}
 
 	public List<Border> getCountryPairs(int anno) {
+		String sql = 
+		"SELECT contiguity.state1ab, contiguity.state2ab "+
+		"FROM country, contiguity "+
+		"WHERE country.StateAbb = contiguity.state1ab "+
+		"AND country.StateAbb = contiguity.state1ab "+
+		"AND contiguity.conttype = 1 "+
+		"AND contiguity.year <= ?";
+		
+		List<Border> borders = new ArrayList<Border>();
+		
+		try {
+			
+			Connection conn = DBConnect.getInstance().getConnection();
+			PreparedStatement st = conn.prepareStatement(sql);
+			st.setInt(1, anno);
+			ResultSet rs = st.executeQuery();
 
-		System.out.println("TODO -- BordersDAO -- getCountryPairs(int anno)");
-		return new ArrayList<Border>();
+			while (rs.next()) {
+				borders.add(new Border(new Country(rs.getString(1)), new Country(rs.getString(2))));
+			}
+
+			conn.close();
+			return borders;
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+			System.out.println("Database Error -- setBorders");
+			throw new RuntimeException("Database Error");
+		}
+		
 	}
+	
+	
 }
